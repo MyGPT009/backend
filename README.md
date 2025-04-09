@@ -80,31 +80,18 @@ Run the migrations
 node ace migration:run
 ```
 
-## Websocket
+## Tests
+
+Create new test
 
 ```bash
-node ace make:preload ws --register
+node ace make:test NomDuTest
 ```
 
-## Deploy to docker
+Run the tests
 
-1. Build the image
 ```bash
-docker build -t backend .
-```
-
-2. Run the container
-```bash
-docker run -d --env-file .env.prod -p 3333:3333 backend:latest
-```
-Save the container id to access it
-
-3. Run the migrations manually
-```bash
-docker exec -it <container_id> /bin/bash
-# when you are inside the container
-node ./bin/console.js migration:run --force
-# then exit the container with ctrl + d
+node ace test
 ```
 
 Now you can access the server on `http://localhost:3333` 🚀
