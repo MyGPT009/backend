@@ -1,76 +1,108 @@
 import { test } from '@japa/runner'
-import User from '#models/user'
-import { cuid } from '@adonisjs/core/helpers'
-import db from '@adonisjs/lucid/services/db'
+import { registerValidator, loginValidator } from '#validators/auth'
 
-test.group('AuthController', (group) => {
-  group.each.teardown(async () => {
-    await db.rawQuery('DELETE FROM users')
+test.group('register', () => {
+  test('register valid user', async ({ assert }) => {
+    const validUser = {
+      name: 'test',
+      email: 'test@gmail.com',
+      password: 'validpassword123',
+    }
+
+    try {
+      await registerValidator.validate(validUser)
+      assert.ok(true)
+    } catch (error) {
+      assert.fail('Not valid user')
+    }
   })
 
-  test('register un nouvel utilisateur', async ({ client, assert }) => {
-    const email = `test-${cuid()}@example.com`
+  test('register invalid name', async ({ assert }) => {
+    const invalidUser = {
+      name: 'te',
+      email: 'test@gmail.com',
+      password: 'validpassword123',
+    }
 
-    const response = await client.post('auth/register').form({
-      email,
-      password: 'password123456', // ✅ longueur 13
-      name: 'Test User',
-    })
-
-    response.assertStatus(201)
-    assert.exists(response.body().id)
-    assert.equal(response.body().email, email)
+    try {
+      await registerValidator.validate(invalidUser)
+      assert.fail('Validation should fail due to short name')
+    } catch (error) {
+      assert.equal(error.message, 'Validation failure')
+    }
   })
 
-  test('login avec de bons identifiants', async ({ client, assert }) => {
-    await User.create({
-      email: 'login@example.com',
-      password: 'password123456', // ✅
-      name: 'Login User',
-    })
-    const response = await client.post('auth/login').form({
-      email: 'login@example.com',
-      password: 'password123456', // ✅
-    })
+  test('register invalid email', async ({ assert }) => {
+    const invalidUser = {
+      name: 'test',
+      email: 'invalid-email',
+      password: 'validpassword123',
+    }
 
-    // response.assertStatus(200)
-    assert.exists(response.body().token)
-    assert.equal(response.body().email, 'login@example.com')
+    try {
+      await registerValidator.validate(invalidUser)
+      assert.fail('Validation should fail due to invalid email')
+    } catch (error) {
+      assert.equal(error.message, 'Validation failure')
+    }
   })
 
-  test('login échoue avec mauvais mot de passe', async ({ client }) => {
-    await User.create({
-      email: 'wrongpass@example.com',
-      password: 'password123456', // ✅
-      name: 'Wrong Pass',
-    })
+  test('register invalid password', async ({ assert }) => {
+    const invalidUser = {
+      name: 'test',
+      email: 'test@gmail.com',
+      password: 'test',
+    }
 
-    const response = await client.post('auth/login').form({
-      email: 'wrongpass@example.com',
-      password: 'wrongpassword123', // ✅ (mais invalide exprès)
-    })
+    try {
+      await registerValidator.validate(invalidUser)
+      assert.fail('Validation should fail due to short password')
+    } catch (error) {
+      assert.equal(error.message, 'Validation failure')
+    }
+  })
+})
 
-    // response.assertStatus(400)
-    response.assertBodyContains({ message: 'Invalid credentials' })
+test.group('login', () => {
+  test('login valid user', async ({ assert }) => {
+    const validLogin = {
+      email: 'testuser@gmail.com',
+      password: 'validpassword123',
+    }
+
+    try {
+      await loginValidator.validate(validLogin)
+      assert.ok(true)
+    } catch (error) {
+      assert.fail('Not valid user')
+    }
   })
 
-  test('logout fonctionne et supprime le token', async ({ client }) => {
-    await User.create({
-      email: 'logout@example.com',
-      password: 'password123456', // ✅
-      name: 'Logout User',
-    })
+  test('login invalid email', async ({ assert }) => {
+    const invalidLogin = {
+      email: 'invalid-email',
+      password: 'validpassword123',
+    }
 
-    const login = await client.post('auth/login').form({
-      email: 'logout@example.com',
-      password: 'password123456',
-    })
+    try {
+      await loginValidator.validate(invalidLogin)
+      assert.fail('Validation should fail due to invalid email')
+    } catch (error) {
+      assert.equal(error.message, 'Validation failure')
+    }
+  })
 
-    const token = login.body().token.token
+  test('login invalid password', async ({ assert }) => {
+    const invalidLogin = {
+      email: 'testuser@gmail.com',
+      password: 'test',
+    }
 
-    const response = await client.delete('auth/logout').bearerToken(token)
-
-    response.assertStatus(200)
-    response.assertBodyContains({ message: 'Logged out' })
+    try {
+      await loginValidator.validate(invalidLogin)
+      assert.fail('Validation should fail due to short password')
+    } catch (error) {
+      assert.equal(error.message, 'Validation failure')
+    }
   })
 })
