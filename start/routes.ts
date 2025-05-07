@@ -21,4 +21,11 @@ router
       .use(middleware.auth())
   })
   .prefix('auth')
-router.post('message', [MessagesController, 'send'])
+
+router
+  .group(() => {
+    router
+      .post('conversations/:conversationId/send', [MessagesController, 'send'])
+      .use(middleware.auth())
+  })
+  .prefix('message')
