@@ -24,6 +24,7 @@ router
 
 router
   .group(() => {
+    router.get('/conversations/:conversationId', [MessagesController, 'index'])
     router
       .post('conversations/:conversationId/send', [MessagesController, 'send'])
       .use(middleware.auth())

@@ -5,6 +5,20 @@ import axios from 'axios'
 import env from '#start/env'
 
 export default class MessagesController {
+  async index({ params, response }: HttpContext) {
+    try {
+      const { conversationId } = params
+
+      const messages = await Message.query().where({ conversationId }).orderBy('createdAt', 'asc')
+
+      return response.ok(messages)
+    } catch {
+      return response.internalServerError({
+        message: 'Une erreur est survenue, veuillez réessayer plus tard.',
+      })
+    }
+  }
+
   async send({ auth, params, request, response }: HttpContext) {
     try {
       const authUser = auth.getUserOrFail()
