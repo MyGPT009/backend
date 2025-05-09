@@ -26,6 +26,7 @@ router
 router
   .group(() => {
     router.get('', [ConversationsController, 'index']).use(middleware.auth())
+    router.post('/new', [ConversationsController, 'store']).use(middleware.auth())
   })
   .prefix('conversation')
 

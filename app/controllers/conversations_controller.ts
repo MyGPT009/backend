@@ -18,4 +18,22 @@ export default class ConversationsController {
       })
     }
   }
+
+  async store({ auth, response }: HttpContext) {
+    try {
+      const authUser = auth.getUserOrFail()
+
+      const conversation = await Conversation.create({
+        title: 'New Conversation',
+        userId: authUser.id,
+      })
+
+      return response.created(conversation)
+    } catch (error) {
+      console.error(error)
+      return response.internalServerError({
+        message: 'Impossible de créer la conversation.',
+      })
+    }
+  }
 }
