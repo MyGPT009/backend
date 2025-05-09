@@ -3,6 +3,7 @@ import { middleware } from '#start/kernel'
 
 const AuthController = () => import('#controllers/auth_controller')
 const MessagesController = () => import('#controllers/messages_controller')
+const ConversationsController = () => import('#controllers/conversations_controller')
 
 router
   .group(() => {
@@ -24,9 +25,15 @@ router
 
 router
   .group(() => {
-    router.get('/conversations/:conversationId', [MessagesController, 'index'])
+    router.get('', [ConversationsController, 'index']).use(middleware.auth())
+  })
+  .prefix('conversation')
+
+router
+  .group(() => {
+    router.get('conversation/:conversationId', [MessagesController, 'index'])
     router
-      .post('conversations/:conversationId/send', [MessagesController, 'send'])
+      .post('conversation/:conversationId/send', [MessagesController, 'send'])
       .use(middleware.auth())
   })
   .prefix('message')
