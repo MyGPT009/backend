@@ -1,23 +1,16 @@
 import { test } from '@japa/runner'
-import Message from '#models/message'
 import User from '#models/user'
-import { AiService } from '#services/ai_service'
 import Conversation from '#models/conversation'
+import MessageRepository from '../../app/repositories/message_repository.js'
+import { AiService } from '#services/ai_service'
 
 test.group('Message', (group) => {
   let user: User
   let conversation: Conversation
-  let message1: Message
-  let message2: Message
+  let messageRepo: MessageRepository
 
   group.each.teardown(async () => {
     // Supprimer uniquement les données créées lors des tests
-    if (message1) {
-      await Message.query().where('id', message1.id).delete()
-    }
-    if (message2) {
-      await Message.query().where('id', message2.id).delete()
-    }
     if (conversation) {
       await Conversation.query().where('id', conversation.id).delete()
     }
@@ -39,18 +32,22 @@ test.group('Message', (group) => {
       userId: user.id,
     })
 
-    // Création de messages fictifs associés à la conversation
-    message1 = await Message.create({
-      content: 'Premier message',
-      conversationId: conversation.id,
-      userId: user.id,
-    })
+    // Instancier le repository
+    messageRepo = new MessageRepository()
 
-    message2 = await Message.create({
-      content: 'Deuxième message',
-      conversationId: conversation.id,
-      userId: user.id,
-    })
+    // Création de messages fictifs associés à la conversation via le repository
+    const message1 = await messageRepo.createMessage(
+      'Premier message',
+      'Réponse IA 1',
+      conversation.id,
+      user.id
+    )
+    const message2 = await messageRepo.createMessage(
+      'Deuxième message',
+      'Réponse IA 2',
+      conversation.id,
+      user.id
+    )
 
     // Faire une requête pour récupérer les messages de la conversation
     const response = await client.get(`/message/conversation/${conversation.id}`)
@@ -62,6 +59,10 @@ test.group('Message', (group) => {
     assert.equal(messages.length, 2)
     assert.equal(messages[0].content, message1.content)
     assert.equal(messages[1].content, message2.content)
+
+    // Supprimer les messages créés à la fin
+    await messageRepo.deleteMessage(message1.id)
+    await messageRepo.deleteMessage(message2.id)
   })
 
   test('should create a message with AI response', async ({ client, assert }) => {
@@ -83,6 +84,9 @@ test.group('Message', (group) => {
       userId: user.id,
     })
 
+    // Instancier le repository
+    messageRepo = new MessageRepository()
+
     // Mock du AiService
     AiService.getAIResponse = async () => 'Réponse IA mockée'
 
@@ -94,12 +98,15 @@ test.group('Message', (group) => {
 
     response.assertStatus(201)
 
-    const message = await Message.findBy('conversationId', conversation.id)
+    // Récupérer le message via le repository
+    const message = await messageRepo.getMessagesByConversationId(conversation.id)
 
-    assert.exists(message)
-    assert.equal(message?.content, 'Bonjour IA !')
-    assert.equal(message?.aiResponse, 'Réponse IA mockée')
-    assert.equal(message?.userId, user.id)
+    assert.equal(message.length, 1)
+    assert.equal(message[0].content, 'Bonjour IA !')
+    assert.equal(message[0].aiResponse, 'Réponse IA mockée')
+    assert.equal(message[0].userId, user.id)
+
+    // Supprimer le message créé à la fin
+    await messageRepo.deleteMessage(message[0].id)
   })
 })
-

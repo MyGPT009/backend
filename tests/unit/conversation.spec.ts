@@ -1,20 +1,13 @@
 import { test } from '@japa/runner'
-import Conversation from '#models/conversation'
 import User from '#models/user'
+import ConversationRepository from '../../app/repositories/conversation_repository.js'
 
 test.group('Conversation', (group) => {
   let user: User
-  let conversation1: Conversation
-  let conversation2: Conversation
+  let conversationRepo: ConversationRepository
 
   group.each.teardown(async () => {
-    // Supprimer uniquement les conversations et utilisateurs créés pendant les tests
-    if (conversation1) {
-      await Conversation.query().where('id', conversation1.id).delete()
-    }
-    if (conversation2) {
-      await Conversation.query().where('id', conversation2.id).delete()
-    }
+    // Supprimer uniquement les utilisateurs créés pendant les tests
     if (user) {
       await User.query().where('id', user.id).delete()
     }
@@ -33,16 +26,12 @@ test.group('Conversation', (group) => {
       throw new Error('Le token généré n’a pas de valeur')
     }
 
-    // Création de conversations fictives pour cet utilisateur
-    conversation1 = await Conversation.create({
-      title: 'Conversation 1',
-      userId: user.id,
-    })
+    // Instancier le repository
+    conversationRepo = new ConversationRepository()
 
-    conversation2 = await Conversation.create({
-      title: 'Conversation 2',
-      userId: user.id,
-    })
+    // Création de conversations fictives pour cet utilisateur via le repository
+    const conversation1 = await conversationRepo.createConversation(user.id)
+    const conversation2 = await conversationRepo.createConversation(user.id)
 
     // Faire une requête pour récupérer les conversations de l'utilisateur
     const response = await client.get('/conversation').bearerToken(token.value.release())
@@ -55,6 +44,10 @@ test.group('Conversation', (group) => {
     assert.equal(conversations.length, 2)
     assert.equal(conversations[0].title, conversation2.title)
     assert.equal(conversations[1].title, conversation1.title)
+
+    // Supprimer les conversations créées à la fin
+    await conversationRepo.deleteConversation(conversation1.id)
+    await conversationRepo.deleteConversation(conversation2.id)
   })
 
   test('should create a new conversation for the authenticated user', async ({
@@ -73,7 +66,10 @@ test.group('Conversation', (group) => {
       throw new Error('Le token généré n’a pas de valeur')
     }
 
-    // Faire une requête pour créer une nouvelle conversation
+    // Instancier le repository
+    conversationRepo = new ConversationRepository()
+
+    // Faire une requête pour créer une nouvelle conversation via le repository
     const response = await client.post('/conversation/new').bearerToken(token.value.release())
 
     response.assertStatus(201)
@@ -83,5 +79,8 @@ test.group('Conversation', (group) => {
     // Vérification que la conversation a bien été créée
     assert.equal(conversation.title, 'New Conversation')
     assert.equal(conversation.userId, user.id)
+
+    // Supprimer la conversation créée à la fin
+    await conversationRepo.deleteConversation(conversation.id)
   })
 })

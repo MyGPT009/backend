@@ -13,4 +13,9 @@ export default class ConversationRepository {
       userId,
     })
   }
+
+  // Créer une conversation
+  public async deleteConversation(conversationId: number) {
+    return Conversation.query().where('id', conversationId).delete()
+  }
 }

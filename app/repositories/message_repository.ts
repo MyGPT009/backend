@@ -20,4 +20,9 @@ export default class MessageRepository {
       userId,
     })
   }
+
+  // Supprimer un message
+  public async deleteMessage(messageId: number) {
+    return Message.query().where('id', messageId).delete()
+  }
 }
