@@ -21,7 +21,7 @@ export class AiService {
 
       return data.candidates?.[0]?.content?.parts?.[0]?.text || 'Pas de réponse.'
     } catch (err) {
-      console.error('Erreur Gemini:', err.response?.data || err.message)
+      console.error('Erreur Ai:', err.response?.data || err.message)
       return 'Pas de réponse.'
     }
   }

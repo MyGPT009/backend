@@ -29,11 +29,11 @@ export default class MessagesController {
       }
 
       // Utilisation du service Ai
-      const aiReply = await AiService.getAIResponse(content)
+      const aiResponse = await AiService.getAIResponse(content)
 
       const message = await Message.create({
         content,
-        aiResponse: aiReply,
+        aiResponse: aiResponse,
         conversationId,
         userId: authUser.id,
       })
