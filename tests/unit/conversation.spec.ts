@@ -3,14 +3,26 @@ import Conversation from '#models/conversation'
 import User from '#models/user'
 
 test.group('Conversation', (group) => {
+  let user: User
+  let conversation1: Conversation
+  let conversation2: Conversation
+
   group.each.teardown(async () => {
-    await Conversation.query().delete()
-    await User.query().delete()
+    // Supprimer uniquement les conversations et utilisateurs créés pendant les tests
+    if (conversation1) {
+      await Conversation.query().where('id', conversation1.id).delete()
+    }
+    if (conversation2) {
+      await Conversation.query().where('id', conversation2.id).delete()
+    }
+    if (user) {
+      await User.query().where('id', user.id).delete()
+    }
   })
 
   test('should return conversations for the authenticated user', async ({ client, assert }) => {
     // Création d'un utilisateur fictif
-    const user = await User.create({
+    user = await User.create({
       email: 'test@example.com',
       password: 'secret',
     })
@@ -22,12 +34,12 @@ test.group('Conversation', (group) => {
     }
 
     // Création de conversations fictives pour cet utilisateur
-    const conversation1 = await Conversation.create({
+    conversation1 = await Conversation.create({
       title: 'Conversation 1',
       userId: user.id,
     })
 
-    const conversation2 = await Conversation.create({
+    conversation2 = await Conversation.create({
       title: 'Conversation 2',
       userId: user.id,
     })
@@ -50,7 +62,7 @@ test.group('Conversation', (group) => {
     assert,
   }) => {
     // Création d'un utilisateur fictif
-    const user = await User.create({
+    user = await User.create({
       email: 'test@example.com',
       password: 'secret',
     })

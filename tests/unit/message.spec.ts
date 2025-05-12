@@ -5,33 +5,48 @@ import { AiService } from '#services/ai_service'
 import Conversation from '#models/conversation'
 
 test.group('Message', (group) => {
+  let user: User
+  let conversation: Conversation
+  let message1: Message
+  let message2: Message
+
   group.each.teardown(async () => {
-    await User.query().delete()
-    await Message.query().delete()
-    await Conversation.query().delete()
+    // Supprimer uniquement les données créées lors des tests
+    if (message1) {
+      await Message.query().where('id', message1.id).delete()
+    }
+    if (message2) {
+      await Message.query().where('id', message2.id).delete()
+    }
+    if (conversation) {
+      await Conversation.query().where('id', conversation.id).delete()
+    }
+    if (user) {
+      await User.query().where('id', user.id).delete()
+    }
   })
 
   test('should return messages for a specific conversation', async ({ client, assert }) => {
     // Création d'un utilisateur fictif
-    const user = await User.create({
+    user = await User.create({
       email: 'test@example.com',
       password: 'secret',
     })
 
     // Création d'une conversation fictive
-    const conversation = await Conversation.create({
+    conversation = await Conversation.create({
       title: 'Test Conversation',
       userId: user.id,
     })
 
     // Création de messages fictifs associés à la conversation
-    const message1 = await Message.create({
+    message1 = await Message.create({
       content: 'Premier message',
       conversationId: conversation.id,
       userId: user.id,
     })
 
-    const message2 = await Message.create({
+    message2 = await Message.create({
       content: 'Deuxième message',
       conversationId: conversation.id,
       userId: user.id,
@@ -51,7 +66,7 @@ test.group('Message', (group) => {
 
   test('should create a message with AI response', async ({ client, assert }) => {
     // Création d'un utilisateur fictif
-    const user = await User.create({
+    user = await User.create({
       email: 'test@example.com',
       password: 'secret',
     })
@@ -63,8 +78,7 @@ test.group('Message', (group) => {
     }
 
     // Création d'une conversation fictive avant d'envoyer un message
-    const conversation = await Conversation.create({
-      // Assure-toi que tous les champs nécessaires pour créer une conversation sont fournis
+    conversation = await Conversation.create({
       title: 'Test Conversation',
       userId: user.id,
     })
@@ -88,3 +102,4 @@ test.group('Message', (group) => {
     assert.equal(message?.userId, user.id)
   })
 })
+
