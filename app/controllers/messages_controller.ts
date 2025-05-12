@@ -33,7 +33,7 @@ export default class MessagesController {
 
       const message = await Message.create({
         content,
-        aiResponse: aiResponse,
+        aiResponse,
         conversationId,
         userId: authUser.id,
       })
