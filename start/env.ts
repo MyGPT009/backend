@@ -35,5 +35,6 @@ export default await Env.create(new URL('../', import.meta.url), {
   | Variable for GeminiApi
   |----------------------------------------------------------
   */
+  GEMINI_API_URL: Env.schema.string(),
   GEMINI_API_KEY: Env.schema.string(),
 })

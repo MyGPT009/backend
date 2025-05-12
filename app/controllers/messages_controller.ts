@@ -1,8 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { storeValidator } from '#validators/message'
 import Message from '#models/message'
-import axios from 'axios'
-import env from '#start/env'
+import { AiService } from '#services/ai_service'
 
 export default class MessagesController {
   async index({ params, response }: HttpContext) {
@@ -29,26 +28,9 @@ export default class MessagesController {
         return response.badRequest({ message: 'Le contenu du message ne peut pas être vide.' })
       }
 
-      // Appel à l'API Gemini
-      let aiReply = 'Pas de réponse.'
-      try {
-        const apiKey = env.get('GEMINI_API_KEY')
-        const { data } = await axios.post(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`,
-          {
-            contents: [{ role: 'user', parts: [{ text: content }] }],
-          },
-          {
-            params: { key: apiKey },
-            headers: { 'Content-Type': 'application/json' },
-          }
-        )
-        aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || aiReply
-      } catch (err) {
-        console.error('Erreur Gemini:', err.response?.data || err.message)
-      }
+      // Utilisation du service Ai
+      const aiReply = await AiService.getAIResponse(content)
 
-      // Création du message avec réponse IA
       const message = await Message.create({
         content,
         aiResponse: aiReply,
