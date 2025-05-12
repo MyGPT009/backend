@@ -1,14 +1,18 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import Conversation from '#models/conversation'
+import ConversationRepository from '../repositories/conversation_repository.js'
 
 export default class ConversationsController {
+  private conversationRepository: ConversationRepository
+
+  constructor() {
+    this.conversationRepository = new ConversationRepository()
+  }
+
+  // Méthode pour lister les conversations
   async index({ auth, response }: HttpContext) {
     try {
       const authUser = auth.getUserOrFail()
-
-      const conversations = await Conversation.query()
-        .where('userId', authUser.id)
-        .orderBy('createdAt', 'desc')
+      const conversations = await this.conversationRepository.getConversationsByUserId(authUser.id)
 
       return response.ok(conversations)
     } catch (error) {
@@ -19,14 +23,11 @@ export default class ConversationsController {
     }
   }
 
+  // Méthode pour créer une conversation
   async store({ auth, response }: HttpContext) {
     try {
       const authUser = auth.getUserOrFail()
-
-      const conversation = await Conversation.create({
-        title: 'New Conversation',
-        userId: authUser.id,
-      })
+      const conversation = await this.conversationRepository.createConversation(authUser.id)
 
       return response.created(conversation)
     } catch (error) {

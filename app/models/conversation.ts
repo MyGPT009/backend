@@ -6,7 +6,7 @@ import User from '#models/user'
 
 export default class Conversation extends BaseModel {
   @column({ isPrimary: true })
-  declare id: string
+  declare id: number
 
   @column()
   declare title: string

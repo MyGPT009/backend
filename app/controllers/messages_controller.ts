@@ -1,14 +1,19 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { storeValidator } from '#validators/message'
-import Message from '#models/message'
+import MessageRepository from '../repositories/message_repository.js'
 import { AiService } from '#services/ai_service'
 
 export default class MessagesController {
+  private messageRepository: MessageRepository
+
+  constructor() {
+    this.messageRepository = new MessageRepository()
+  }
+
   async index({ params, response }: HttpContext) {
     try {
       const { conversationId } = params
-
-      const messages = await Message.query().where({ conversationId }).orderBy('createdAt', 'asc')
+      const messages = await this.messageRepository.getMessagesByConversationId(conversationId)
 
       return response.ok(messages)
     } catch {
@@ -18,6 +23,7 @@ export default class MessagesController {
     }
   }
 
+  // Méthode pour envoyer un message
   async send({ auth, params, request, response }: HttpContext) {
     try {
       const authUser = auth.getUserOrFail()
@@ -28,15 +34,13 @@ export default class MessagesController {
         return response.badRequest({ message: 'Le contenu du message ne peut pas être vide.' })
       }
 
-      // Utilisation du service Ai
       const aiResponse = await AiService.getAIResponse(content)
-
-      const message = await Message.create({
+      const message = await this.messageRepository.createMessage(
         content,
         aiResponse,
         conversationId,
-        userId: authUser.id,
-      })
+        authUser.id
+      )
 
       return response.created(message)
     } catch (err) {

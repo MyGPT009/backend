@@ -6,7 +6,7 @@ import User from '#models/user'
 
 export default class Message extends BaseModel {
   @column({ isPrimary: true })
-  declare id: string
+  declare id: number
 
   @column()
   declare content: string
@@ -15,7 +15,7 @@ export default class Message extends BaseModel {
   declare aiResponse: string
 
   @column()
-  declare conversationId: string
+  declare conversationId: number
 
   @column()
   declare userId: number
