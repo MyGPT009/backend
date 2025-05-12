@@ -4,11 +4,49 @@ import User from '#models/user'
 import { AiService } from '#services/ai_service'
 import Conversation from '#models/conversation'
 
-test.group('MessageController.send', (group) => {
+test.group('Message', (group) => {
   group.each.teardown(async () => {
     await User.query().delete()
     await Message.query().delete()
     await Conversation.query().delete()
+  })
+
+  test('should return messages for a specific conversation', async ({ client, assert }) => {
+    // Création d'un utilisateur fictif
+    const user = await User.create({
+      email: 'test@example.com',
+      password: 'secret',
+    })
+
+    // Création d'une conversation fictive
+    const conversation = await Conversation.create({
+      title: 'Test Conversation',
+      userId: user.id,
+    })
+
+    // Création de messages fictifs associés à la conversation
+    const message1 = await Message.create({
+      content: 'Premier message',
+      conversationId: conversation.id,
+      userId: user.id,
+    })
+
+    const message2 = await Message.create({
+      content: 'Deuxième message',
+      conversationId: conversation.id,
+      userId: user.id,
+    })
+
+    // Faire une requête pour récupérer les messages de la conversation
+    const response = await client.get(`/message/conversation/${conversation.id}`)
+
+    response.assertStatus(200)
+
+    const messages = response.body()
+
+    assert.equal(messages.length, 2)
+    assert.equal(messages[0].content, message1.content)
+    assert.equal(messages[1].content, message2.content)
   })
 
   test('should create a message with AI response', async ({ client, assert }) => {
