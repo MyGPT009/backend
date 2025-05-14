@@ -9,33 +9,31 @@ test.group('Message', (group) => {
   let conversation: Conversation
   let messageRepo: MessageRepository
 
+  // Helpers
+  const createTestUser = async (email = 'test@example.com') => {
+    return await User.create({ email, password: 'secret' })
+  }
+
+  const createTestConversation = async (userId: number, title = 'Test Conversation') => {
+    return await Conversation.create({ title, userId })
+  }
+
+  const createAuthToken = async (targetUser: User) => {
+    const token = await User.accessTokens.create(targetUser)
+    if (!token.value) throw new Error('Le token généré n’a pas de valeur')
+    return token.value.release()
+  }
+
   group.each.teardown(async () => {
-    // Supprimer uniquement les données créées lors des tests
-    if (conversation) {
-      await Conversation.query().where('id', conversation.id).delete()
-    }
-    if (user) {
-      await User.query().where('id', user.id).delete()
-    }
+    if (conversation) await Conversation.query().where('id', conversation.id).delete()
+    if (user) await User.query().where('id', user.id).delete()
   })
 
   test('should return messages for a specific conversation', async ({ client, assert }) => {
-    // Création d'un utilisateur fictif
-    user = await User.create({
-      email: 'test@example.com',
-      password: 'secret',
-    })
-
-    // Création d'une conversation fictive
-    conversation = await Conversation.create({
-      title: 'Test Conversation',
-      userId: user.id,
-    })
-
-    // Instancier le repository
+    user = await createTestUser()
+    conversation = await createTestConversation(user.id)
     messageRepo = new MessageRepository()
 
-    // Création de messages fictifs associés à la conversation via le repository
     const message1 = await messageRepo.createMessage(
       'Premier message',
       'Réponse IA 1',
@@ -49,56 +47,33 @@ test.group('Message', (group) => {
       user.id
     )
 
-    // Faire une requête pour récupérer les messages de la conversation
     const response = await client.get(`/message/conversation/${conversation.id}`)
-
     response.assertStatus(200)
 
     const messages = response.body()
-
     assert.equal(messages.length, 2)
     assert.equal(messages[0].content, message1.content)
     assert.equal(messages[1].content, message2.content)
 
-    // Supprimer les messages créés à la fin
     await messageRepo.deleteMessage(message1.id)
     await messageRepo.deleteMessage(message2.id)
   })
 
   test('should create a message with AI response', async ({ client, assert }) => {
-    // Création d'un utilisateur fictif
-    user = await User.create({
-      email: 'test@example.com',
-      password: 'secret',
-    })
-
-    // Génération d’un token API
-    const token = await User.accessTokens.create(user)
-    if (!token.value) {
-      throw new Error('Le token généré n’a pas de valeur')
-    }
-
-    // Création d'une conversation fictive avant d'envoyer un message
-    conversation = await Conversation.create({
-      title: 'Test Conversation',
-      userId: user.id,
-    })
-
-    // Instancier le repository
+    user = await createTestUser()
+    const token = await createAuthToken(user)
+    conversation = await createTestConversation(user.id)
     messageRepo = new MessageRepository()
 
-    // Mock du AiService
     AiService.getAIResponse = async () => 'Réponse IA mockée'
 
-    // Utilisation de l'ID de la conversation créée pour envoyer un message
     const response = await client
       .post(`/message/conversation/${conversation.id}/send`)
       .form({ content: 'Bonjour IA !' })
-      .bearerToken(token.value.release())
+      .bearerToken(token)
 
     response.assertStatus(201)
 
-    // Récupérer le message via le repository
     const message = await messageRepo.getMessagesByConversationId(conversation.id)
 
     assert.equal(message.length, 1)
@@ -106,7 +81,6 @@ test.group('Message', (group) => {
     assert.equal(message[0].aiResponse, 'Réponse IA mockée')
     assert.equal(message[0].userId, user.id)
 
-    // Supprimer le message créé à la fin
     await messageRepo.deleteMessage(message[0].id)
   })
 
@@ -114,17 +88,8 @@ test.group('Message', (group) => {
     client,
     assert,
   }) => {
-    // Création d'un utilisateur fictif
-    user = await User.create({
-      email: 'test@example.com',
-      password: 'secret',
-    })
-
-    // Création d'une conversation fictive sans utilisateur authentifié
-    conversation = await Conversation.create({
-      title: 'Test Conversation',
-      userId: user.id, // id fictif
-    })
+    user = await createTestUser()
+    conversation = await createTestConversation(user.id)
 
     const response = await client
       .post(`/message/conversation/${conversation.id}/send`)
@@ -132,34 +97,21 @@ test.group('Message', (group) => {
 
     response.assertStatus(401)
     assert.deepEqual(response.body(), {
-      errors: [
-        {
-          message: 'Unauthorized access',
-        },
-      ],
+      errors: [{ message: 'Unauthorized access' }],
     })
   })
 
   test('should return 400 when trying to send an empty message', async ({ client, assert }) => {
-    user = await User.create({ email: 'vide@example.com', password: 'secret' })
-    conversation = await Conversation.create({
-      title: 'Conversation vide',
-      userId: user.id,
-    })
-
-    // Génération d’un token API
-    const token = await User.accessTokens.create(user)
-    if (!token.value) {
-      throw new Error('Le token généré n’a pas de valeur')
-    }
+    user = await createTestUser('vide@example.com')
+    conversation = await createTestConversation(user.id, 'Conversation vide')
+    const token = await createAuthToken(user)
 
     const response = await client
       .post(`/message/conversation/${conversation.id}/send`)
-      .form({ content: '   ' }) // message vide ou avec des espaces
-      .bearerToken(token.value.release())
+      .form({ content: '   ' })
+      .bearerToken(token)
 
     response.assertStatus(400)
-
     assert.deepEqual(response.body(), {
       message: 'Le contenu du message ne peut pas être vide.',
     })
@@ -169,21 +121,13 @@ test.group('Message', (group) => {
     client,
     assert,
   }) => {
-    user = await User.create({
-      email: 'test@example.com',
-      password: 'secret',
-    })
-
-    conversation = await Conversation.create({
-      title: 'Empty Conversation',
-      userId: user.id,
-    })
+    user = await createTestUser()
+    conversation = await createTestConversation(user.id, 'Empty Conversation')
 
     const response = await client.get(`/message/conversation/${conversation.id}`)
-
     response.assertStatus(200)
-    const messages = response.body()
 
+    const messages = response.body()
     assert.isArray(messages)
     assert.lengthOf(messages, 0)
   })
