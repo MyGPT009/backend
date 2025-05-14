@@ -29,7 +29,10 @@ test.group('Message', (group) => {
     if (user) await User.query().where('id', user.id).delete()
   })
 
-  test('should return messages for a specific conversation', async ({ client, assert }) => {
+  test('doit retourner les messages pour une conversation spécifique', async ({
+    client,
+    assert,
+  }) => {
     user = await createTestUser()
     conversation = await createTestConversation(user.id)
     messageRepo = new MessageRepository()
@@ -59,7 +62,7 @@ test.group('Message', (group) => {
     await messageRepo.deleteMessage(message2.id)
   })
 
-  test('should create a message with AI response', async ({ client, assert }) => {
+  test('doit créer un message avec une réponse de l’IA', async ({ client, assert }) => {
     user = await createTestUser()
     const token = await createAuthToken(user)
     conversation = await createTestConversation(user.id)
@@ -84,7 +87,7 @@ test.group('Message', (group) => {
     await messageRepo.deleteMessage(message[0].id)
   })
 
-  test('should return 401 when sending a message without authentication', async ({
+  test('doit retourner une erreur 401 si non authentifié lors de l’envoi du message', async ({
     client,
     assert,
   }) => {
@@ -101,7 +104,10 @@ test.group('Message', (group) => {
     })
   })
 
-  test('should return 400 when trying to send an empty message', async ({ client, assert }) => {
+  test('doit retourner une erreur 400 lors de l’envoi d’un message vide', async ({
+    client,
+    assert,
+  }) => {
     user = await createTestUser('vide@example.com')
     conversation = await createTestConversation(user.id, 'Conversation vide')
     const token = await createAuthToken(user)
@@ -117,7 +123,7 @@ test.group('Message', (group) => {
     })
   })
 
-  test('should return empty array when conversation has no messages', async ({
+  test('doit retourner un tableau vide si la conversation ne contient aucun message', async ({
     client,
     assert,
   }) => {

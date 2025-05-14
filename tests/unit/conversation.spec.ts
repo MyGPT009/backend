@@ -21,7 +21,10 @@ test.group('Conversation', (group) => {
     if (user) await User.query().where('id', user.id).delete()
   })
 
-  test('should return conversations for the authenticated user', async ({ client, assert }) => {
+  test('doit retourner les conversations de l’utilisateur authentifié', async ({
+    client,
+    assert,
+  }) => {
     user = await createTestUser()
     const token = await createAuthToken(user)
     conversationRepo = new ConversationRepository()
@@ -41,7 +44,7 @@ test.group('Conversation', (group) => {
     await conversationRepo.deleteConversation(conversation2.id)
   })
 
-  test('should create a new conversation for the authenticated user', async ({
+  test('doit créer une nouvelle conversation pour l’utilisateur authentifié', async ({
     client,
     assert,
   }) => {
@@ -59,7 +62,7 @@ test.group('Conversation', (group) => {
     await conversationRepo.deleteConversation(conversation.id)
   })
 
-  test('should return 401 when fetching conversations without authentication', async ({
+  test('doit retourner une erreur 401 lors de la récupération des conversations sans authentification', async ({
     client,
     assert,
   }) => {
@@ -70,7 +73,7 @@ test.group('Conversation', (group) => {
     })
   })
 
-  test('should return 401 when trying to create a conversation without authentication', async ({
+  test('doit retourner une erreur 401 lors de la création d’une conversation sans authentification', async ({
     client,
     assert,
   }) => {
@@ -81,7 +84,7 @@ test.group('Conversation', (group) => {
     })
   })
 
-  test('should delete a conversation by ID', async ({ assert }) => {
+  test('doit supprimer une conversation par ID', async ({ assert }) => {
     user = await createTestUser()
     conversationRepo = new ConversationRepository()
 
