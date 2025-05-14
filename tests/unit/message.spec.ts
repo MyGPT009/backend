@@ -109,4 +109,82 @@ test.group('Message', (group) => {
     // Supprimer le message créé à la fin
     await messageRepo.deleteMessage(message[0].id)
   })
+
+  test('should return 401 when sending a message without authentication', async ({
+    client,
+    assert,
+  }) => {
+    // Création d'un utilisateur fictif
+    user = await User.create({
+      email: 'test@example.com',
+      password: 'secret',
+    })
+
+    // Création d'une conversation fictive sans utilisateur authentifié
+    conversation = await Conversation.create({
+      title: 'Test Conversation',
+      userId: user.id, // id fictif
+    })
+
+    const response = await client
+      .post(`/message/conversation/${conversation.id}/send`)
+      .form({ content: 'Message sans auth' })
+
+    response.assertStatus(401)
+    assert.deepEqual(response.body(), {
+      errors: [
+        {
+          message: 'Unauthorized access',
+        },
+      ],
+    })
+  })
+
+  test('should return 400 when trying to send an empty message', async ({ client, assert }) => {
+    user = await User.create({ email: 'vide@example.com', password: 'secret' })
+    conversation = await Conversation.create({
+      title: 'Conversation vide',
+      userId: user.id,
+    })
+
+    // Génération d’un token API
+    const token = await User.accessTokens.create(user)
+    if (!token.value) {
+      throw new Error('Le token généré n’a pas de valeur')
+    }
+
+    const response = await client
+      .post(`/message/conversation/${conversation.id}/send`)
+      .form({ content: '   ' }) // message vide ou avec des espaces
+      .bearerToken(token.value.release())
+
+    response.assertStatus(400)
+
+    assert.deepEqual(response.body(), {
+      message: 'Le contenu du message ne peut pas être vide.',
+    })
+  })
+
+  test('should return empty array when conversation has no messages', async ({
+    client,
+    assert,
+  }) => {
+    user = await User.create({
+      email: 'test@example.com',
+      password: 'secret',
+    })
+
+    conversation = await Conversation.create({
+      title: 'Empty Conversation',
+      userId: user.id,
+    })
+
+    const response = await client.get(`/message/conversation/${conversation.id}`)
+
+    response.assertStatus(200)
+    const messages = response.body()
+
+    assert.isArray(messages)
+    assert.lengthOf(messages, 0)
+  })
 })

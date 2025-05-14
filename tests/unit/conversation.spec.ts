@@ -83,4 +83,60 @@ test.group('Conversation', (group) => {
     // Supprimer la conversation créée à la fin
     await conversationRepo.deleteConversation(conversation.id)
   })
+
+  test('should return 401 when fetching conversations without authentication', async ({
+    client,
+    assert,
+  }) => {
+    const response = await client.get('/conversation')
+
+    response.assertStatus(401)
+
+    assert.deepEqual(response.body(), {
+      errors: [
+        {
+          message: 'Unauthorized access',
+        },
+      ],
+    })
+  })
+
+  test('should return 401 when trying to create a conversation without authentication', async ({
+    client,
+    assert,
+  }) => {
+    const response = await client.post('/conversation/new')
+
+    response.assertStatus(401)
+
+    assert.deepEqual(response.body(), {
+      errors: [
+        {
+          message: 'Unauthorized access',
+        },
+      ],
+    })
+  })
+
+  test('should delete a conversation by ID', async ({ assert }) => {
+    // Créer un utilisateur fictif
+    user = await User.create({
+      email: 'test@example.com',
+      password: 'secret',
+    })
+
+    conversationRepo = new ConversationRepository()
+
+    // Créer une conversation
+    const conversation = await conversationRepo.createConversation(user.id)
+
+    // Supprimer la conversation
+    const deletedRows = await conversationRepo.deleteConversation(conversation.id)
+
+    // Vérifier que la conversation a été supprimée
+    assert.equal(deletedRows, 1)
+
+    const result = await conversationRepo.getConversationsByUserId(user.id)
+    assert.lengthOf(result, 0)
+  })
 })
